@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { supabase } from '@/lib/supabaseClient'
+import { getSupabaseBrowser } from '@/lib/supabase-browser'
+const supabase = getSupabaseBrowser()
 import { RosterTable } from '@/components/RosterTable'
 
 type RosterRow = {

@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabaseClient'
+import { getSupabaseBrowser } from '@/lib/supabase-browser'
+const supabase = getSupabaseBrowser()
 
 type Row = Record<string, any>
 type FetchState = { loading: boolean; error: string | null; rows: Row[] }

@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabaseClient'
+import { getSupabaseBrowser } from '@/lib/supabase-browser'
+const supabase = getSupabaseBrowser()
 
 export default function TestPage() {
   const [tenants, setTenants] = useState<any[]>([])
