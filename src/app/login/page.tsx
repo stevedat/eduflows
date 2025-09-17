@@ -1,27 +1,35 @@
 'use client'
 
 import { useState } from 'react'
+import { createClient } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabaseClient'
+
+const supabaseAuth = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  // Removed tenantId for superadmin login
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(null)
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
-    setError(null)
+    setError(null); setInfo(null); setLoading(true)
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) throw error
-      // Đăng nhập OK → quay về /diagnostics để test RLS
-      router.replace('/diagnostics')
-    } catch (err: any) {
-      setError(err?.message ?? 'Login failed')
+      // 1) Đăng nhập
+      const { data: { session }, error: signErr } = await supabaseAuth.auth.signInWithPassword({ email, password })
+      if (signErr || !session) throw new Error(signErr?.message || 'Sign-in failed')
+
+      setInfo('Signed in. Redirecting…')
+      router.push('/quick')
+    } catch (e:any) {
+      setError(e?.message || 'Login error')
     } finally {
       setLoading(false)
     }
@@ -29,52 +37,28 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-2xl shadow p-6 border">
-        <h1 className="text-2xl font-semibold mb-4">Sign in</h1>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm mb-1">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 outline-none"
-              placeholder="you@example.com"
-            />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Password</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 outline-none"
-              placeholder="••••••••"
-            />
-          </div>
+      <form onSubmit={handleLogin} className="w-full max-w-md border rounded-2xl p-6 space-y-4">
+        <h1 className="text-xl font-semibold">Login & Issue Tenant DB Token</h1>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+        <label className="text-sm grid gap-1">
+          <span>Email</span>
+          <input className="border rounded px-3 py-2" type="email" value={email} onChange={e=>setEmail(e.target.value)} required />
+        </label>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl px-4 py-2 border bg-black text-white hover:opacity-90 disabled:opacity-50"
-          >
-            {loading ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
+        <label className="text-sm grid gap-1">
+          <span>Password</span>
+          <input className="border rounded px-3 py-2" type="password" value={password} onChange={e=>setPassword(e.target.value)} required />
+        </label>
 
-        <div className="mt-6 text-sm text-gray-600 space-y-2">
-          <p>
-            Sau khi đăng nhập thành công, mở trang <code>/diagnostics</code> để gọi các API view và kiểm tra RLS.
-          </p>
-          <p>
-            Nếu thấy mảng rỗng (<code>[]</code>): tài khoản chưa có <code>tenant_id</code> phù hợp hoặc chưa có dữ liệu seed — đây là hành vi đúng.
-          </p>
-        </div>
-      </div>
+        {/* Tenant ID input removed for superadmin login */}
+
+        <button disabled={loading} className="w-full border rounded px-3 py-2">
+          {loading ? 'Processing…' : 'Login & Get DB Token'}
+        </button>
+
+        {error && <div className="text-sm text-red-600">Error: {error}</div>}
+        {info && <div className="text-sm text-green-700">{info}</div>}
+      </form>
     </div>
   )
 }
